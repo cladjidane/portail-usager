@@ -26,3 +26,10 @@ Run `yarn build` to build the project. The build artifacts will be stored in the
 
 Run `yarn test` to test the project.
 
+### Lint
+#### Code lint
+( A venir )
+
+#### Style lint
+
+Run `yarn stylelint` to lint the project.
