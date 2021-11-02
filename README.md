@@ -21,3 +21,8 @@ Run `yarn start`. Navigate to `http://localhost:4200/`.
 ### Build
 
 Run `yarn build` to build the project. The build artifacts will be stored in the `dist/` directory.
+
+### Test
+
+Run `yarn test` to test the project.
+
