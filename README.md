@@ -11,7 +11,7 @@ Vise à remplacer à terme l'existant.
 
 ## Installation
 
-Run `yarn install` to install dependencies.
+- Run `yarn install` to install dependencies.
 
 ## Usage
 
@@ -40,3 +40,10 @@ Run `yarn stylelint` to lint the project.
 ### Prettier
 
 Run `yarn prettier` to prettyfy the solution.
+
+### Pre-commit hooks
+
+Activated pre-commits hooks are :
+
+- prettier.
+- lint-staged: lint the files staged for commit.
