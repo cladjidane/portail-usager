@@ -5,9 +5,9 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
 @NgModule({
+  bootstrap: [AppComponent],
   declarations: [AppComponent],
   imports: [BrowserModule, AppRoutingModule],
-  providers: [],
-  bootstrap: [AppComponent]
+  providers: []
 })
 export class AppModule {}

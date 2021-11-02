@@ -31,7 +31,7 @@ Run `yarn test` to test the project.
 
 #### Code lint
 
-( A venir )
+Run `yarn lint` to lint the solution.
 
 #### Style lint
 

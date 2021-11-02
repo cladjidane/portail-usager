@@ -2,12 +2,15 @@ import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { AppModule } from './app/app.module';
-import { environment } from './environments/environment';
+import { ENVIRONMENT, EnvironmentType } from './environments';
 
-if (environment.production) {
+if (ENVIRONMENT.type === EnvironmentType.Production)
   enableProdMode();
-}
 
 platformBrowserDynamic()
   .bootstrapModule(AppModule)
-  .catch((err) => console.error(err));
+  // eslint-disable-next-line no-console
+  .catch((bootstrapModuleError: Error): void =>
+    // eslint-disable-next-line no-console
+    console.error(bootstrapModuleError)
+  );
