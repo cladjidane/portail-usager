@@ -1,4 +1,4 @@
-# portail-client
+# portail-usager
 
 ## A propos
 

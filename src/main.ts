@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
@@ -9,8 +10,6 @@ if (ENVIRONMENT.type === EnvironmentType.Production)
 
 platformBrowserDynamic()
   .bootstrapModule(AppModule)
-  // eslint-disable-next-line no-console
   .catch((bootstrapModuleError: Error): void =>
-    // eslint-disable-next-line no-console
     console.error(bootstrapModuleError)
   );
