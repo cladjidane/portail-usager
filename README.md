@@ -2,7 +2,8 @@
 
 ## A propos
 
-Nouvelle application front-end client du site conseillé numérique (https://www.conseiller-numerique.gouv.fr/).
+Nouvelle application front-end usager du site Conseiller Numérique (https://www.conseiller-numerique.gouv.fr/).
+
 Vise à remplacer à terme l'existant.
 
 ## Prerequisites
