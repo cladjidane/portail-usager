@@ -1,0 +1,9 @@
+name: Dummy workflow for dispatch to appear on my feature branch
+
+on: workflow_dispatch
+jobs:
+  dummy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: cf https://github.community/t/workflow-dispatch-workflow-not-showing-in-actions-tab/130088
+        run: echo "I'm a dummy"
