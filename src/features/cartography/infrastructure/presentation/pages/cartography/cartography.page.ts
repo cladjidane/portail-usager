@@ -1,14 +1,16 @@
 // TODO REVIEW IGNORE
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import type { MapOptionsPresentation, MarkersPresentation, MarkerProperties } from '../../models';
-import { featureGeoJsonToMarker } from '../../models';
+import { MapOptionsPresentation, MarkersPresentation, MarkerProperties } from '../../models';
 import { CartographyPresenter } from './cartography.presenter';
-import type { Observable } from 'rxjs';
-import { BehaviorSubject, Subject } from 'rxjs';
-import type { Coordinates } from '../../../../core';
-import type { ViewBox, ViewReset } from '../../directives/leaflet-map-state-change';
-import type { Feature, FeatureCollection, Point } from 'geojson';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { Coordinates } from '../../../../core';
+import { ViewBox, ViewReset } from '../../directives/leaflet-map-state-change';
+import { Feature, FeatureCollection, Point } from 'geojson';
 import { Marker } from '../../../configuration';
+import { ViewCullingPipe } from '../../pipes/view-culling.pipe';
+import { combineLatestWith, map } from 'rxjs/operators';
+import { AnyGeoJsonProperty } from '../../../../../../environments/environment.model';
+import { setMarkerIcon } from '../../pipes/marker-icon-helper';
 
 // TODO Inject though configuration token
 const DEFAULT_VIEW_BOX: ViewBox = {
@@ -34,7 +36,10 @@ export class CartographyPage {
   // TODO Init with token configuration
   private readonly _viewBox$: BehaviorSubject<ViewBox> = new BehaviorSubject<ViewBox>(DEFAULT_VIEW_BOX);
 
-  public readonly cnfsMarkers$: Observable<MarkersPresentation> = this._cnfsMarkers$.asObservable();
+  private readonly _visibleMarkers$: BehaviorSubject<MarkersPresentation> = new BehaviorSubject<MarkersPresentation>({
+    features: [],
+    type: 'FeatureCollection'
+  });
 
   public readonly mapOptions: MapOptionsPresentation;
 
@@ -42,18 +47,36 @@ export class CartographyPage {
 
   public readonly viewBox$: Observable<ViewBox> = this._viewBox$.asObservable();
 
-  public constructor(private readonly presenter: CartographyPresenter) {
-    this.mapOptions = this.presenter.defaultMapOptions();
+  public readonly visibleMarkers$: Observable<MarkersPresentation> = this._visibleMarkers$.asObservable();
 
-    // eslint-disable-next-line
-    this.presenter.listCnfsPositions$().subscribe((cnfs: FeatureCollection<Point>): void => {
-      this.presenter.clusterService.load(
-        cnfs.features.map(
-          (feature: Feature<Point>): Feature<Point, MarkerProperties> => featureGeoJsonToMarker(feature, Marker.CnfsCluster)
-        )
-      );
-      this._viewBox$.next({ ...DEFAULT_VIEW_BOX });
-    });
+  // eslint-disable-next-line max-lines-per-function
+  public constructor(private readonly presenter: CartographyPresenter) {
+    this.mapOptions = presenter.defaultMapOptions();
+
+    // TODO Remove subscribe and use async pipe
+    presenter
+      .listCnfsPositions$()
+      .pipe(
+        combineLatestWith(this.viewBox$),
+        map(([cnfsFeatureCollection, viewBox]: [FeatureCollection<Point, AnyGeoJsonProperty>, ViewBox]): void => {
+          if (!this.presenter.clusterService.isReady) presenter.clusterService.load(cnfsFeatureCollection.features);
+
+          const visibleInMapViewport: FeatureCollection<Point, AnyGeoJsonProperty> = new ViewCullingPipe(
+            presenter.clusterService
+          ).transform(viewBox);
+          const featuresVisibleInViewport: Feature<Point, AnyGeoJsonProperty>[] = visibleInMapViewport.features;
+          const markerIcon: Marker = presenter.clusterService.getMarkerAtZoomLevel(viewBox.zoomLevel);
+          const markersVisibleInViewport: Feature<Point, MarkerProperties>[] = featuresVisibleInViewport.map(
+            setMarkerIcon(markerIcon)
+          );
+          this._visibleMarkers$.next({
+            features: markersVisibleInViewport,
+            type: 'FeatureCollection'
+          });
+        })
+      )
+      // eslint-disable-next-line
+      .subscribe();
   }
 
   public geocodeUsagerPosition($event: string): void {
@@ -69,6 +92,10 @@ export class CartographyPage {
   }
 
   public updateUsagerPosition($event: Coordinates): void {
+    /*
+     * TODO Centrer la vue sur la position, (avec bon zoom level)
+     *  Réétudier leaflet.Map.setView pour voir comment l'utiliser proprement
+     */
     this._usagerCoordinates$.next($event);
   }
 }

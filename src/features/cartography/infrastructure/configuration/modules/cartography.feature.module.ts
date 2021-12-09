@@ -2,10 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CartographyFeatureRoutingModule } from './cartography.feature-routing.module';
 import { ListCnfsPositionUseCase } from '../../../use-cases';
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { CnfsRepository, CoordinatesRepository } from '../../../core';
-
 import { MARKERS, MARKERS_TOKEN } from '../tokens';
 import { CartographyPage } from '../../presentation/pages';
 import { LeafletMapComponent } from '../../presentation/components';
@@ -18,12 +15,14 @@ import { ViewCullingPipe } from '../../presentation/pipes/view-culling.pipe';
 import { ClusterService } from '../../presentation/services/cluster.service';
 import { AddressGeolocationComponent } from '../../presentation/components/address-geolocation/address-geolocation.component';
 import { AddUsagerMarker } from '../../presentation/pipes/add-usager-marker.pipe';
+import { CnfsListComponent } from '../../presentation/components/cnfs-list/cnfs-list.component';
 
 @NgModule({
   declarations: [
     AddressGeolocationComponent,
     AddUsagerMarker,
     CartographyPage,
+    CnfsListComponent,
     LeafletMapComponent,
     LeafletMapStateChangeDirective,
     ViewCullingPipe
