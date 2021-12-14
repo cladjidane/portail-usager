@@ -1,4 +1,5 @@
 import {
+  control,
   geoJSON,
   latLng,
   LatLng,
@@ -14,20 +15,19 @@ import {
   ZoomPanOptions
 } from 'leaflet';
 import {
-  AfterViewInit,
+  AfterViewChecked,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   EventEmitter,
   Inject,
   Input,
-  OnChanges,
   Output,
   ViewChild
 } from '@angular/core';
-import { CenterView, EMPTY_FEATURE_COLLECTION, MapOptionsPresentation, MarkerEvent, MarkerProperties } from '../../models';
-import { MarkersConfiguration, MARKERS_TOKEN } from '../../../configuration';
-import { Feature, FeatureCollection, Point } from 'geojson';
+import { CenterView, EMPTY_FEATURE_COLLECTION, MarkerEvent, MarkerProperties, MarkersPresentation } from '../../models';
+import { MarkersConfiguration, CartographyConfiguration, MARKERS_TOKEN } from '../../../configuration';
+import { Feature, Point } from 'geojson';
 import { GeocodeAddressUseCase } from '../../../../use-cases/geocode-address/geocode-address.use-case';
 import { AnyGeoJsonProperty } from '../../../../../../environments/environment.model';
 import { Coordinates } from '../../../../core';
@@ -42,18 +42,14 @@ const DURATION_IN_SECOND: number = 0.5;
   selector: 'leaflet-map',
   templateUrl: './leaflet-map.component.html'
 })
-export class LeafletMapComponent implements AfterViewInit, OnChanges {
+export class LeafletMapComponent implements AfterViewChecked {
   private _map!: LeafletMap;
   private _mapOptions: LeafletMapOptions = {};
   private _markersLayer: Layer = geoJSON();
 
-  @ViewChild('map')
-  public mapContainer!: ElementRef<HTMLElement>;
-
   @Output() public readonly markerChange: EventEmitter<MarkerEvent> = new EventEmitter<MarkerEvent>();
 
-  @Input()
-  public markers: FeatureCollection<Point, MarkerProperties> = EMPTY_FEATURE_COLLECTION;
+  @Input() public markers: MarkersPresentation = EMPTY_FEATURE_COLLECTION;
 
   public get map(): LeafletMap {
     return this._map;
@@ -64,17 +60,27 @@ export class LeafletMapComponent implements AfterViewInit, OnChanges {
     if (centerView !== null) this.setView(centerView.coordinates, centerView.zoomLevel);
   }
 
+  @ViewChild('map')
+  public set mapContainer(mapContainer: ElementRef<HTMLElement>) {
+    this._map = map(mapContainer.nativeElement, this._mapOptions);
+    control.zoom({ position: 'bottomright' }).addTo(this._map);
+  }
+
   @Input()
-  public set mapOptions(mapOptions: MapOptionsPresentation) {
+  public set mapOptions(mapOptions: CartographyConfiguration) {
     // TODO Convert configuration to injected token for default options then remove
     this._mapOptions = {
-      center: latLng(mapOptions.centerCoordinates.latitude, mapOptions.centerCoordinates.longitude),
+      center: latLng(mapOptions.center.coordinates[1], mapOptions.center.coordinates[0]),
       layers: [
-        tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
         })
       ],
-      zoom: Math.min(mapOptions.zoomLevel, MAX_ZOOM_LEVEL)
+      maxZoom: MAX_ZOOM_LEVEL,
+      minZoom: 2.5,
+      zoom: mapOptions.zoomLevel,
+      zoomControl: false,
+      zoomDelta: 0.5
     };
   }
 
@@ -106,20 +112,6 @@ export class LeafletMapComponent implements AfterViewInit, OnChanges {
     );
   }
 
-  private initMap(): void {
-    this._map = map(this.mapContainer.nativeElement, this._mapOptions);
-  }
-
-  private mapIsInitialized(): boolean {
-    return this._map instanceof LeafletMap;
-  }
-
-  private refreshMarkersLayer(): void {
-    if (this._map.hasLayer(this._markersLayer)) this._map.removeLayer(this._markersLayer);
-    this._markersLayer = geoJSON(this.markers, { pointToLayer: this.featureToMarker });
-    this._map.addLayer(this._markersLayer);
-  }
-
   public featureToMarker = (feature: Feature<Point, MarkerProperties>, position: LatLng): Layer =>
     this.createEventedMarker(
       position,
@@ -127,12 +119,10 @@ export class LeafletMapComponent implements AfterViewInit, OnChanges {
       this.markersConfigurations[feature.properties.markerIconConfiguration](feature)
     );
 
-  public ngAfterViewInit(): void {
-    this.initMap();
-  }
-
-  public ngOnChanges(): void {
-    if (this.mapIsInitialized()) this.refreshMarkersLayer();
+  public ngAfterViewChecked(): void {
+    if (this._map.hasLayer(this._markersLayer)) this._map.removeLayer(this._markersLayer);
+    this._markersLayer = geoJSON(this.markers, { pointToLayer: this.featureToMarker });
+    this._map.addLayer(this._markersLayer);
   }
 
   public setView(center: Coordinates, zoomLevel: number): void {

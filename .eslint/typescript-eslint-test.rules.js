@@ -3,13 +3,7 @@ module.exports = {
   '@typescript-eslint/ban-tslint-comment': 'error',
   '@typescript-eslint/class-literal-property-style': 'error',
   '@typescript-eslint/consistent-indexed-object-style': 'error',
-  '@typescript-eslint/consistent-type-assertions': [
-    'error',
-    {
-      assertionStyle: 'as',
-      objectLiteralTypeAssertions: 'never'
-    }
-  ],
+  '@typescript-eslint/consistent-type-assertions': 'off',
   '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
   '@typescript-eslint/consistent-type-exports': 'error',
   '@typescript-eslint/consistent-type-imports': 'off',
