@@ -1,0 +1,10 @@
+name: Staging continuous integration / deployment on clevercloud
+
+on: workflow_dispatch
+
+jobs:
+  dummy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dummy step
+        run: echo "dummy workflow"
