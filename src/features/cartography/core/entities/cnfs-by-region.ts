@@ -1,6 +1,7 @@
 import { Coordinates } from '../value-objects';
 
 export interface CnfsByRegionProperties {
+  boundingZoom: number;
   count: number;
   region: string;
 }
