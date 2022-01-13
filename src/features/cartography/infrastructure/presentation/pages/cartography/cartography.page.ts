@@ -8,20 +8,19 @@ import {
   MarkerProperties,
   PointOfInterestMarkerProperties,
   StructurePresentation,
-  TypedMarker
+  TypedMarker,
+  boundedMarkerEventToCenterView,
+  coordinatesToCenterView,
+  permanenceMarkerEventToCenterView
 } from '../../models';
 import { isGuyaneBoundedMarker, addUsagerFeatureToMarkers, CartographyPresenter } from './cartography.presenter';
-import { BehaviorSubject, merge, Observable, of, Subject, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, merge, Observable, of, Subject, switchMap } from 'rxjs';
 import { Coordinates } from '../../../../core';
 import { ViewportAndZoom, ViewReset } from '../../directives/leaflet-map-state-change';
 import { CartographyConfiguration, CARTOGRAPHY_TOKEN, Marker } from '../../../configuration';
 import { Feature, FeatureCollection, Point } from 'geojson';
-import { catchError, combineLatestWith, map, startWith } from 'rxjs/operators';
-import {
-  boundedMarkerEventToCenterView,
-  coordinatesToCenterView,
-  permanenceMarkerEventToCenterView
-} from '../../models/center-view/center-view.presentation-mapper';
+import { catchError, combineLatestWith, map, startWith, tap } from 'rxjs/operators';
+import { CITY_ZOOM_LEVEL, DEPARTMENT_ZOOM_LEVEL } from '../../helpers/map-constants';
 
 // TODO Inject though configuration token
 const DEFAULT_MAP_VIEWPORT_AND_ZOOM: ViewportAndZoom = {
@@ -38,11 +37,15 @@ const DEFAULT_MAP_VIEWPORT_AND_ZOOM: ViewportAndZoom = {
 export class CartographyPage {
   private readonly _addressToGeocode$: Subject<string> = new Subject<string>();
 
+  private _automaticLocationInProgress: boolean = false;
+
+  private readonly _centerView$: BehaviorSubject<CenterView> = new BehaviorSubject<CenterView>(this.cartographyConfiguration);
+
   private readonly _cnfsDetails$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   private readonly _forceCnfsPermanence$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
-  private readonly _mapViewportAndZoom$: Subject<ViewportAndZoom> = new BehaviorSubject<ViewportAndZoom>(
+  private readonly _mapViewportAndZoom$: BehaviorSubject<ViewportAndZoom> = new BehaviorSubject<ViewportAndZoom>(
     DEFAULT_MAP_VIEWPORT_AND_ZOOM
   );
 
@@ -52,7 +55,7 @@ export class CartographyPage {
     .visibleMapPointsOfInterestThroughViewportAtZoomLevel$(this._mapViewportAndZoom$, this._forceCnfsPermanence$.asObservable())
     .pipe(startWith([]));
 
-  public centerView: CenterView = this.cartographyConfiguration;
+  public centerView$: Observable<CenterView> = this._centerView$.asObservable();
 
   // Todo : use empty object pattern.
   public cnfsDetails$: Observable<CnfsDetailsPresentation | null> = this._cnfsDetails$.pipe(
@@ -70,13 +73,13 @@ export class CartographyPage {
 
   public structuresList$: Observable<StructurePresentation[]> = this.presenter.structuresList$(this._mapViewportAndZoom$);
 
-  // Todo : use empty object pattern.
+  // TODO On peut merger ça plus haut pour éviter le null
   public readonly usagerCoordinates$: Observable<Coordinates | null> = merge(
     this.presenter.geocodeAddress$(this._addressToGeocode$),
     this._usagerCoordinates$
   ).pipe(
-    tap((coordinates: Coordinates): void => {
-      this.centerView = coordinatesToCenterView(coordinates);
+    tap((usagerCoordinates: Coordinates): void => {
+      this._centerView$.next(coordinatesToCenterView(usagerCoordinates, CITY_ZOOM_LEVEL));
     }),
     startWith(null),
     catchError((): Observable<null> => {
@@ -97,7 +100,14 @@ export class CartographyPage {
         features: addUsagerFeatureToMarkers(visibleMapPointsOfInterest, usagerCoordinates),
         type: 'FeatureCollection'
       })
-    )
+    ),
+    // TODO Trouver une manière plus élégante de faire un dezoom si aucune CnfsPermanence n'est affiché lors de la location automatique
+    tap((featureCollection: FeatureCollection<Point, PointOfInterestMarkerProperties | TypedMarker>): void => {
+      if (this.hasNoCnfsPermanenceFollowingGeocodeOrAutolocate(featureCollection))
+        this.zoomOutUpToDepartmentLevel(featureCollection);
+
+      this._automaticLocationInProgress = false;
+    })
   );
 
   public constructor(
@@ -107,11 +117,33 @@ export class CartographyPage {
 
   private handleBoundedMarkerEvents(markerEvent: MarkerEvent<PointOfInterestMarkerProperties>): void {
     this._forceCnfsPermanence$.next(isGuyaneBoundedMarker(markerEvent));
-    this.centerView = boundedMarkerEventToCenterView(markerEvent as MarkerEvent<MarkerProperties<BoundedMarkers>>);
+    this._centerView$.next(boundedMarkerEventToCenterView(markerEvent as MarkerEvent<MarkerProperties<BoundedMarkers>>));
   }
 
   private handleCnfsPermanenceMarkerEvents(markerEvent: MarkerEvent<PointOfInterestMarkerProperties>): void {
-    this.centerView = permanenceMarkerEventToCenterView(markerEvent as MarkerEvent<MarkerProperties<CnfsPermanenceProperties>>);
+    this._centerView$.next(
+      permanenceMarkerEventToCenterView(markerEvent as MarkerEvent<MarkerProperties<CnfsPermanenceProperties>>)
+    );
+  }
+
+  private hasNoCnfsPermanenceFollowingGeocodeOrAutolocate(
+    featureCollection: FeatureCollection<Point, PointOfInterestMarkerProperties | TypedMarker>
+  ): boolean {
+    return (
+      this._automaticLocationInProgress &&
+      featureCollection.features.length === 1 &&
+      featureCollection.features[0].properties.markerType === Marker.Usager
+    );
+  }
+
+  private zoomOutUpToDepartmentLevel(
+    featureCollection: FeatureCollection<Point, PointOfInterestMarkerProperties | TypedMarker>
+  ): void {
+    const coordinates: Coordinates = new Coordinates(
+      featureCollection.features[0].geometry.coordinates[1],
+      featureCollection.features[0].geometry.coordinates[0]
+    );
+    this._centerView$.next(coordinatesToCenterView(coordinates, DEPARTMENT_ZOOM_LEVEL + 1));
   }
 
   public displayCnfsDetails(id: string): void {
@@ -125,10 +157,12 @@ export class CartographyPage {
   }
 
   public onAutoLocateUsagerRequest(coordinates: Coordinates): void {
+    this._automaticLocationInProgress = true;
     this._usagerCoordinates$.next(coordinates);
   }
 
   public onGeocodeUsagerRequest(address: string): void {
+    this._automaticLocationInProgress = true;
     this._addressToGeocode$.next(address);
   }
 
