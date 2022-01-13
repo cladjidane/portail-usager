@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@angular/core';
 import {
   cnfsByDepartmentToPresentation,
   cnfsCoreToCnfsPermanenceFeatures,
+  CnfsDetailsPresentation,
+  cnfsDetailsToPresentation,
   CnfsPermanenceProperties,
   listCnfsByRegionToPresentation,
   MarkerEvent,
@@ -12,8 +14,13 @@ import {
 } from '../../models';
 import { CnfsByDepartmentProperties, CnfsByRegionProperties, Coordinates } from '../../../../core';
 import { EMPTY, iif, map, merge, Observable, of, switchMap } from 'rxjs';
-import { ListCnfsByDepartmentUseCase, ListCnfsByRegionUseCase, ListCnfsUseCase } from '../../../../use-cases';
-import { GeocodeAddressUseCase } from '../../../../use-cases/geocode-address/geocode-address.use-case';
+import {
+  CnfsDetailsUseCase,
+  GeocodeAddressUseCase,
+  ListCnfsByDepartmentUseCase,
+  ListCnfsByRegionUseCase,
+  ListCnfsUseCase
+} from '../../../../use-cases';
 import { Feature, Point } from 'geojson';
 import { MapViewCullingService } from '../../services/map-view-culling.service';
 import { combineLatestWith, mergeMap, share } from 'rxjs/operators';
@@ -56,11 +63,11 @@ export class CartographyPresenter {
     this.listCnfsByRegionUseCase.execute$().pipe(map(listCnfsByRegionToPresentation), share());
   private readonly _cnfsPermanences$: Observable<Feature<Point, MarkerProperties<CnfsPermanenceProperties>>[]> =
     this.listCnfsPositionUseCase.execute$().pipe(map(cnfsCoreToCnfsPermanenceFeatures), share());
-
   private readonly _markersCache: ObservableCache<Feature<Point, PointOfInterestMarkerProperties>[], Marker> =
     new ObservableCache<Feature<Point, PointOfInterestMarkerProperties>[], Marker>();
 
   public constructor(
+    @Inject(CnfsDetailsUseCase) private readonly cnfsDetailsUseCase: CnfsDetailsUseCase,
     @Inject(ListCnfsByRegionUseCase) private readonly listCnfsByRegionUseCase: ListCnfsByRegionUseCase,
     @Inject(ListCnfsByDepartmentUseCase) private readonly listCnfsByDepartmentUseCase: ListCnfsByDepartmentUseCase,
     @Inject(ListCnfsUseCase) private readonly listCnfsPositionUseCase: ListCnfsUseCase,
@@ -141,6 +148,10 @@ export class CartographyPresenter {
       this.cnfsByDepartmentOrEmpty$(markerTypeToDisplay),
       this.cnfsPermanencesInViewportOrEmpty$(markerTypeToDisplay, viewportWithZoomLevel)
     );
+  }
+
+  public cnfsDetails$(id: string): Observable<CnfsDetailsPresentation> {
+    return this.cnfsDetailsUseCase.execute$(id).pipe(map(cnfsDetailsToPresentation));
   }
 
   public geocodeAddress$(addressToGeocode$: Observable<string>): Observable<Coordinates> {

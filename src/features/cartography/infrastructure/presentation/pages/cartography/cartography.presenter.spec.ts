@@ -1,6 +1,11 @@
 import { CartographyPresenter } from './cartography.presenter';
-import { ListCnfsByDepartmentUseCase, ListCnfsByRegionUseCase, ListCnfsUseCase } from '../../../../use-cases';
-import { GeocodeAddressUseCase } from '../../../../use-cases/geocode-address/geocode-address.use-case';
+import {
+  CnfsDetailsUseCase,
+  GeocodeAddressUseCase,
+  ListCnfsByDepartmentUseCase,
+  ListCnfsByRegionUseCase,
+  ListCnfsUseCase
+} from '../../../../use-cases';
 import { MapViewCullingService } from '../../services/map-view-culling.service';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { Feature, Point } from 'geojson';
@@ -10,23 +15,25 @@ import {
   CnfsByDepartmentProperties,
   CnfsByRegion,
   CnfsByRegionProperties,
-  Coordinates
+  CnfsDetails,
+  Coordinates,
+  StructureContact
 } from '../../../../core';
 import {
   CenterView,
+  CnfsDetailsPresentation,
   CnfsPermanenceProperties,
+  DayPresentation,
   MarkerEvent,
   MarkerProperties,
   PointOfInterestMarkerProperties,
-  StructurePresentation
-} from '../../models';
-import { ViewportAndZoom } from '../../directives/leaflet-map-state-change';
-import { Marker } from '../../../configuration';
-import {
+  StructurePresentation,
   boundedMarkerEventToCenterView,
   coordinatesToCenterView,
   permanenceMarkerEventToCenterView
-} from '../../models/center-view/center-view.presentation-mapper';
+} from '../../models';
+import { ViewportAndZoom } from '../../directives/leaflet-map-state-change';
+import { Marker } from '../../../configuration';
 import { DEPARTMENT_ZOOM_LEVEL, REGION_ZOOM_LEVEL } from '../../helpers/map-constants';
 
 const LIST_CNFS_BY_REGION_USE_CASE: ListCnfsByRegionUseCase = {
@@ -69,34 +76,35 @@ const LIST_CNFS_USE_CASE: ListCnfsUseCase = {
   execute$(): Observable<Cnfs[]> {
     return of([
       new Cnfs(new Coordinates(45.734377, 4.816864), {
-        cnfs: {
-          email: 'john.doe@conseiller-numerique.fr',
-          name: 'John Doe'
-        },
-        structure: {
-          address: '12 rue des Acacias, 69002 Lyon',
-          isLabeledFranceServices: false,
-          name: 'Association des centres sociaux et culturels de Lyon',
-          phone: '0456789012',
-          type: 'association'
-        }
+        address: '12 rue des Acacias, 69002 Lyon',
+        id: '4c38ebc9a06fdd532bf9d7be',
+        isLabeledFranceServices: false,
+        name: 'Association des centres sociaux et culturels de Lyon'
       }),
       new Cnfs(new Coordinates(43.305645, 5.380007), {
-        cnfs: {
-          email: 'mary.doe@conseiller-numerique.fr',
-          name: 'Mary Doe'
-        },
-        structure: {
-          address: '31 Avenue de la mer, 13003 Marseille',
-          isLabeledFranceServices: true,
-          name: 'Médiathèque de la mer',
-          phone: '0478563641',
-          type: ''
-        }
+        address: '31 Avenue de la mer, 13003 Marseille',
+        id: '88bc36fb0db191928330b1e6',
+        isLabeledFranceServices: true,
+        name: 'Médiathèque de la mer'
       })
     ]);
   }
 } as ListCnfsUseCase;
+
+const CNFS_DETAILS_USE_CASE: CnfsDetailsUseCase = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  execute$(_: string): Observable<CnfsDetails> {
+    return of(
+      new CnfsDetails(
+        2,
+        'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
+        ['9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 12h00'],
+        'Place José Moron 3200 RIOM',
+        new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com')
+      )
+    );
+  }
+} as CnfsDetailsUseCase;
 
 describe('cartography presenter', (): void => {
   describe('visible point of interest markers', (): void => {
@@ -137,6 +145,7 @@ describe('cartography presenter', (): void => {
       });
 
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         LIST_CNFS_BY_REGION_USE_CASE,
         LIST_CNFS_BY_DEPARTMENT_USE_CASE,
         LIST_CNFS_USE_CASE,
@@ -184,6 +193,7 @@ describe('cartography presenter', (): void => {
       ];
 
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         LIST_CNFS_BY_REGION_USE_CASE,
         LIST_CNFS_BY_DEPARTMENT_USE_CASE,
         LIST_CNFS_USE_CASE,
@@ -206,7 +216,6 @@ describe('cartography presenter', (): void => {
 
     it('should display cnfs permanences at department zoom level if marker display is forced', async (): Promise<void> => {
       const forceCnfsPermanenceDisplay$: Observable<boolean> = of(true);
-      const viewCullingService: MapViewCullingService = new MapViewCullingService();
       const listCnfsByDepartmentUseCase: ListCnfsByDepartmentUseCase = {
         execute$(): Observable<CnfsByDepartment[]> {
           return of([
@@ -224,17 +233,10 @@ describe('cartography presenter', (): void => {
         execute$(): Observable<Cnfs[]> {
           return of([
             new Cnfs(new Coordinates(4.33889, -50.125782), {
-              cnfs: {
-                email: 'mary.doe@conseiller-numerique.fr',
-                name: 'Mary Doe'
-              },
-              structure: {
-                address: '31 Avenue de la mer, 13003 Cayenne',
-                isLabeledFranceServices: true,
-                name: 'Médiathèque de la mer',
-                phone: '0478563641',
-                type: ''
-              }
+              address: '31 Avenue de la mer, 13003 Cayenne',
+              id: '4c38ebc9a06fdd532bf9d7be',
+              isLabeledFranceServices: true,
+              name: 'Médiathèque de la mer'
             })
           ]);
         }
@@ -247,31 +249,23 @@ describe('cartography presenter', (): void => {
             type: 'Point'
           },
           properties: {
-            cnfs: [
-              {
-                email: 'mary.doe@conseiller-numerique.fr',
-                name: 'Mary Doe'
-              }
-            ],
+            address: '31 Avenue de la mer, 13003 Cayenne',
+            id: '4c38ebc9a06fdd532bf9d7be',
+            isLabeledFranceServices: true,
             markerType: Marker.CnfsPermanence,
-            structure: {
-              address: '31 Avenue de la mer, 13003 Cayenne',
-              isLabeledFranceServices: true,
-              name: 'Médiathèque de la mer',
-              phone: '0478563641',
-              type: ''
-            }
+            name: 'Médiathèque de la mer'
           },
           type: 'Feature'
         }
       ];
 
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         LIST_CNFS_BY_REGION_USE_CASE,
         listCnfsByDepartmentUseCase,
         listCnfsUseCase,
         {} as GeocodeAddressUseCase,
-        viewCullingService
+        new MapViewCullingService()
       );
 
       const viewportAndZoom$: Observable<ViewportAndZoom> = of({
@@ -292,7 +286,6 @@ describe('cartography presenter', (): void => {
 
     it('should display cnfs by department at depatment zoom level if marker display is not forced', async (): Promise<void> => {
       const forceCnfsPermanenceDisplay$: Observable<boolean> = of(false);
-      const viewCullingService: MapViewCullingService = new MapViewCullingService();
       const listCnfsByDepartmentUseCase: ListCnfsByDepartmentUseCase = {
         execute$(): Observable<CnfsByDepartment[]> {
           return of([
@@ -310,17 +303,10 @@ describe('cartography presenter', (): void => {
         execute$(): Observable<Cnfs[]> {
           return of([
             new Cnfs(new Coordinates(4.33889, -50.125782), {
-              cnfs: {
-                email: 'mary.doe@conseiller-numerique.fr',
-                name: 'Mary Doe'
-              },
-              structure: {
-                address: '31 Avenue de la mer, 13003 Cayenne',
-                isLabeledFranceServices: true,
-                name: 'Médiathèque de la mer',
-                phone: '0478563641',
-                type: ''
-              }
+              address: '31 Avenue de la mer, 13003 Cayenne',
+              id: '4c38ebc9a06fdd532bf9d7be',
+              isLabeledFranceServices: true,
+              name: 'Médiathèque de la mer'
             })
           ]);
         }
@@ -344,11 +330,12 @@ describe('cartography presenter', (): void => {
       ];
 
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         LIST_CNFS_BY_REGION_USE_CASE,
         listCnfsByDepartmentUseCase,
         listCnfsUseCase,
         {} as GeocodeAddressUseCase,
-        viewCullingService
+        new MapViewCullingService()
       );
 
       const viewportAndZoom$: Observable<ViewportAndZoom> = of({
@@ -368,13 +355,13 @@ describe('cartography presenter', (): void => {
     });
 
     it('should display all cnfs permanences if zoomed more than the department level', async (): Promise<void> => {
-      const viewCullingService: MapViewCullingService = new MapViewCullingService();
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         LIST_CNFS_BY_REGION_USE_CASE,
         LIST_CNFS_BY_DEPARTMENT_USE_CASE,
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
-        viewCullingService
+        new MapViewCullingService()
       );
 
       const expectedCnfsPermanenceMarkersFeatures: Feature<Point, MarkerProperties<CnfsPermanenceProperties>>[] = [
@@ -384,20 +371,11 @@ describe('cartography presenter', (): void => {
             type: 'Point'
           },
           properties: {
-            cnfs: [
-              {
-                email: 'john.doe@conseiller-numerique.fr',
-                name: 'John Doe'
-              }
-            ],
+            address: '12 rue des Acacias, 69002 Lyon',
+            id: '4c38ebc9a06fdd532bf9d7be',
+            isLabeledFranceServices: false,
             markerType: Marker.CnfsPermanence,
-            structure: {
-              address: '12 rue des Acacias, 69002 Lyon',
-              isLabeledFranceServices: false,
-              name: 'Association des centres sociaux et culturels de Lyon',
-              phone: '0456789012',
-              type: 'association'
-            }
+            name: 'Association des centres sociaux et culturels de Lyon'
           },
           type: 'Feature'
         },
@@ -407,20 +385,11 @@ describe('cartography presenter', (): void => {
             type: 'Point'
           },
           properties: {
-            cnfs: [
-              {
-                email: 'mary.doe@conseiller-numerique.fr',
-                name: 'Mary Doe'
-              }
-            ],
+            address: '31 Avenue de la mer, 13003 Marseille',
+            id: '88bc36fb0db191928330b1e6',
+            isLabeledFranceServices: true,
             markerType: Marker.CnfsPermanence,
-            structure: {
-              address: '31 Avenue de la mer, 13003 Marseille',
-              isLabeledFranceServices: true,
-              name: 'Médiathèque de la mer',
-              phone: '0478563641',
-              type: ''
-            }
+            name: 'Médiathèque de la mer'
           },
           type: 'Feature'
         }
@@ -470,15 +439,11 @@ describe('cartography presenter', (): void => {
         eventType: 'click',
         markerPosition: palaisDeLElyseeCoordinates,
         markerProperties: {
-          cnfs: [],
+          address: '12 rue des Acacias, 69002 Lyon',
+          id: '4c38ebc9a06fdd532bf9d7be',
+          isLabeledFranceServices: false,
           markerType: Marker.CnfsPermanence,
-          structure: {
-            address: '12 rue des Acacias, 69002 Lyon',
-            isLabeledFranceServices: false,
-            name: 'Association des centres sociaux et culturels de Lyon',
-            phone: '0456789012',
-            type: 'association'
-          }
+          name: 'Association des centres sociaux et culturels de Lyon'
         }
       };
 
@@ -505,6 +470,7 @@ describe('cartography presenter', (): void => {
   describe('structures list', (): void => {
     it(`should be empty if markers to display are not CnfsPermanence`, async (): Promise<void> => {
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         {
           execute$: (): Observable<CnfsByRegion[]> => of([])
         } as unknown as ListCnfsByRegionUseCase,
@@ -535,17 +501,15 @@ describe('cartography presenter', (): void => {
       const expectedStructureList: StructurePresentation[] = [
         {
           address: '12 rue des Acacias, 69002 Lyon',
+          id: '4c38ebc9a06fdd532bf9d7be',
           isLabeledFranceServices: false,
-          name: 'Association des centres sociaux et culturels de Lyon',
-          phone: '0456789012',
-          type: 'association'
+          name: 'Association des centres sociaux et culturels de Lyon'
         },
         {
           address: '31 Avenue de la mer, 13003 Marseille',
+          id: '88bc36fb0db191928330b1e6',
           isLabeledFranceServices: true,
-          name: 'Médiathèque de la mer',
-          phone: '0478563641',
-          type: ''
+          name: 'Médiathèque de la mer'
         }
       ];
 
@@ -555,8 +519,8 @@ describe('cartography presenter', (): void => {
         zoomLevel: DEPARTMENT_ZOOM_LEVEL + 1
       });
 
-      const viewCullingService: MapViewCullingService = new MapViewCullingService();
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
         {
           execute$: (): Observable<CnfsByRegion[]> => of([])
         } as unknown as ListCnfsByRegionUseCase,
@@ -565,7 +529,7 @@ describe('cartography presenter', (): void => {
         } as unknown as ListCnfsByDepartmentUseCase,
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
-        viewCullingService
+        new MapViewCullingService()
       );
 
       const structuresList: StructurePresentation[] = await firstValueFrom(
@@ -574,5 +538,57 @@ describe('cartography presenter', (): void => {
 
       expect(structuresList).toStrictEqual(expectedStructureList);
     });
+  });
+
+  it('should get cnfs details', async (): Promise<void> => {
+    const expectedCnfsDetails: CnfsDetailsPresentation = {
+      address: 'Place José Moron 3200 RIOM',
+      cnfsNumber: 2,
+      email: 'email@example.com',
+      opening: [
+        {
+          day: DayPresentation.Monday,
+          hours: '9h30 - 17h30'
+        },
+        {
+          day: DayPresentation.Tuesday,
+          hours: '9h30 - 17h30'
+        },
+        {
+          day: DayPresentation.Wednesday,
+          hours: '9h30 - 17h30'
+        },
+        {
+          day: DayPresentation.Thursday,
+          hours: '9h30 - 17h30'
+        },
+        {
+          day: DayPresentation.Friday,
+          hours: '9h30 - 17h30'
+        },
+        {
+          day: DayPresentation.Saturday,
+          hours: '9h30 - 12h00'
+        }
+      ],
+      phone: '03 86 55 26 40',
+      structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
+      website: 'https://www.test.com'
+    };
+
+    const id: string = '4c38ebc9a06fdd532bf9d7be';
+
+    const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+      CNFS_DETAILS_USE_CASE,
+      LIST_CNFS_BY_REGION_USE_CASE,
+      LIST_CNFS_BY_DEPARTMENT_USE_CASE,
+      LIST_CNFS_USE_CASE,
+      {} as GeocodeAddressUseCase,
+      {} as MapViewCullingService
+    );
+
+    const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(cartographyPresenter.cnfsDetails$(id));
+
+    expect(cnfsDetails).toStrictEqual(expectedCnfsDetails);
   });
 });

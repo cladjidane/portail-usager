@@ -1,19 +1,29 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CartographyFeatureRoutingModule } from './cartography.feature-routing.module';
-import { ListCnfsByRegionUseCase, ListCnfsByDepartmentUseCase, ListCnfsUseCase } from '../../../use-cases';
+import {
+  CnfsDetailsUseCase,
+  GeocodeAddressUseCase,
+  ListCnfsByDepartmentUseCase,
+  ListCnfsByRegionUseCase,
+  ListCnfsUseCase
+} from '../../../use-cases';
 import { CnfsRepository, Coordinates, CoordinatesRepository } from '../../../core';
 import { CARTOGRAPHY_TOKEN, MARKERS, MARKERS_TOKEN } from '../tokens';
 import { CartographyPage } from '../../presentation/pages';
-import { DisplayMapComponent, LeafletMapComponent } from '../../presentation/components';
+import {
+  AddressGeolocationComponent,
+  CnfsDetailsComponent,
+  CnfsDetailsContactComponent,
+  CnfsListComponent,
+  DisplayMapComponent,
+  LeafletMapComponent
+} from '../../presentation/components';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CnfsRest } from '../../data/rest';
 import { CoordinatesRest } from '../../data/rest/coordinates';
-import { GeocodeAddressUseCase } from '../../../use-cases/geocode-address/geocode-address.use-case';
 import { LeafletMapStateChangeDirective } from '../../presentation/directives/leaflet-map-state-change';
 import { MapViewCullingService } from '../../presentation/services/map-view-culling.service';
-import { AddressGeolocationComponent } from '../../presentation/components/address-geolocation/address-geolocation.component';
-import { CnfsListComponent } from '../../presentation/components/cnfs-list/cnfs-list.component';
 
 const METROPOLITAN_FRANCE_CENTER_LONGITUDE: number = 4.468874066180609;
 const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
@@ -22,6 +32,8 @@ const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
   declarations: [
     AddressGeolocationComponent,
     CartographyPage,
+    CnfsDetailsComponent,
+    CnfsDetailsContactComponent,
     CnfsListComponent,
     DisplayMapComponent,
     LeafletMapComponent,
@@ -61,6 +73,11 @@ const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
       deps: [CnfsRest],
       provide: ListCnfsByRegionUseCase,
       useFactory: (cnfsRepository: CnfsRepository): ListCnfsByRegionUseCase => new ListCnfsByRegionUseCase(cnfsRepository)
+    },
+    {
+      deps: [CnfsRest],
+      provide: CnfsDetailsUseCase,
+      useFactory: (cnfsRepository: CnfsRepository): CnfsDetailsUseCase => new CnfsDetailsUseCase(cnfsRepository)
     },
     {
       deps: [CoordinatesRest],
