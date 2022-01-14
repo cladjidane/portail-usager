@@ -1,17 +1,19 @@
+// eslint-disable-next-line id-length
 import {
   control,
+  DivIcon,
   geoJSON,
+  Icon,
   latLng,
   LatLng,
   Layer,
+  LeafletMouseEvent,
   map,
   Map as LeafletMap,
   MapOptions as LeafletMapOptions,
   marker,
   Marker as LeafletMarker,
-  tileLayer,
-  DivIcon,
-  Icon
+  tileLayer
 } from 'leaflet';
 import {
   AfterViewChecked,
@@ -27,15 +29,21 @@ import {
   SimpleChanges,
   ViewChild
 } from '@angular/core';
-import { CenterView, MarkerEvent, MarkerProperties, PointOfInterestMarkerProperties, TypedMarker } from '../../models';
-import { MarkersConfiguration, MARKERS_TOKEN } from '../../../configuration';
+import {
+  CenterView,
+  CnfsPermanenceMarkerProperties,
+  MarkerEvent,
+  MarkerProperties,
+  PointOfInterestMarkerProperties,
+  TypedMarker
+} from '../../models';
+import { Marker, MARKERS_TOKEN, MarkersConfiguration } from '../../../configuration';
 import { Feature, FeatureCollection, Point } from 'geojson';
-import { GeocodeAddressUseCase } from '../../../../use-cases/geocode-address/geocode-address.use-case';
 import { CnfsByDepartmentProperties, CnfsByRegionProperties, Coordinates } from '../../../../core';
 import { emptyFeatureCollection } from '../../helpers';
 
 // TODO Convert configuration to injected token for default options then remove
-const ANIMATION_DURATION_IN_SECONDS: number = 0.5;
+const ANIMATION_DURATION_IN_SECONDS: number = 0.2;
 // TODO Convert configuration to injected token for default options then remove
 const MAP_OPTIONS: LeafletMapOptions = {
   layers: [
@@ -55,13 +63,42 @@ const DEFAULT_LATITUDE: number = 46.28146057911664;
 // TODO Convert configuration to injected token for default options then remove
 const DEFAULT_ZOOM_LEVEL: number = 6;
 
-const shouldSetView = (centerViewChange: SimpleChange | undefined): boolean => !(centerViewChange?.firstChange ?? true);
+type TypedLeafletMouseEvent<T> = Omit<LeafletMouseEvent, 'target'> & {
+  target: {
+    feature: T;
+  };
+};
+
+export type TypedLeafletMarker<T> = Omit<LeafletMarker, 'feature'> & {
+  feature: T;
+};
 
 const currentValue = <T>(simpleChange: SimpleChange | undefined): T => simpleChange?.currentValue as T;
 
+const shouldSetView = (centerViewChange: SimpleChange | undefined): boolean => !(centerViewChange?.firstChange ?? true);
+
+const toArray = <T>(input: T | T[]): T[] => (Array.isArray(input) ? input : [input]);
+
+const markerPayloadFromEvent = (
+  markerEvent: TypedLeafletMouseEvent<Feature<Point, PointOfInterestMarkerProperties>>
+): MarkerEvent<PointOfInterestMarkerProperties> => ({
+  eventType: markerEvent.type,
+  markerPosition: new Coordinates(markerEvent.latlng.lat, markerEvent.latlng.lng),
+  markerProperties: markerEvent.target.feature.properties
+});
+
+const getMapMarkers = (leafletMap: LeafletMap): LeafletMarker[] => {
+  const markers: LeafletMarker[] = [];
+
+  const isLayerWithFeature = (layer: Layer): boolean => Object.keys(layer).includes('feature');
+
+  leafletMap.eachLayer((layer: Layer): number | false => isLayerWithFeature(layer) && markers.push(layer as LeafletMarker));
+
+  return markers;
+};
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [GeocodeAddressUseCase],
   selector: 'leaflet-map',
   templateUrl: './leaflet-map.component.html'
 })
@@ -94,31 +131,22 @@ export class LeafletMapComponent implements AfterViewChecked, OnChanges {
       zoom: this.centerView.zoomLevel
     });
     control.zoom({ position: 'bottomright' }).addTo(this._map);
+    new ResizeObserver((): LeafletMap => this._map.invalidateSize()).observe(mapContainer.nativeElement);
   }
 
   public constructor(@Inject(MARKERS_TOKEN) private readonly markersConfigurations: MarkersConfiguration) {}
 
-  // eslint-disable-next-line max-lines-per-function
   private createEventedMarker(
     position: LatLng,
     feature: Feature<Point, PointOfInterestMarkerProperties>,
     iconMarker: DivIcon | Icon
   ): LeafletMarker {
-    return (
-      marker(position, { icon: iconMarker, zIndexOffset: feature.properties.zIndexOffset ?? 0 })
-        // WARNING : Typing 'event' will cause a error in leaflet.
-        // eslint-disable-next-line @typescript-eslint/typedef
-        .on('click', (markerEvent): void => {
-          const payload: MarkerEvent<PointOfInterestMarkerProperties> = {
-            eventType: markerEvent.type,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-member-access
-            markerPosition: new Coordinates(markerEvent.target._latlng.lat, markerEvent.target._latlng.lng),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            markerProperties: markerEvent.target?.feature?.properties as PointOfInterestMarkerProperties
-          };
-          this.markerChange.emit(payload);
-        })
-    );
+    return marker(position, {
+      icon: iconMarker,
+      zIndexOffset: feature.properties.zIndexOffset ?? 0
+    }).on('click', (markerEvent: LeafletMouseEvent): void => {
+      this.markerChange.emit(markerPayloadFromEvent(markerEvent));
+    });
   }
 
   private readonly featureToMarker = (feature: Feature<Point, PointOfInterestMarkerProperties>, position: LatLng): Layer =>
@@ -126,7 +154,10 @@ export class LeafletMapComponent implements AfterViewChecked, OnChanges {
       position,
       feature,
       this.markersConfigurations[feature.properties.markerType](
-        feature as unknown as Feature<Point, MarkerProperties<CnfsByDepartmentProperties & CnfsByRegionProperties>>
+        feature as Feature<
+          Point,
+          MarkerProperties<CnfsByDepartmentProperties & CnfsByRegionProperties & CnfsPermanenceMarkerProperties & null>
+        >
       )
     );
 
@@ -135,6 +166,16 @@ export class LeafletMapComponent implements AfterViewChecked, OnChanges {
       animate: true,
       duration: ANIMATION_DURATION_IN_SECONDS
     });
+  }
+
+  public findMarker<T extends Feature<Point, PointOfInterestMarkerProperties>>(
+    markerType: Marker | Marker[],
+    predicate: (marker: T) => boolean
+  ): TypedLeafletMarker<T> | undefined {
+    return (getMapMarkers(this._map) as unknown as TypedLeafletMarker<T>[]).find(
+      (mapMarker: TypedLeafletMarker<T>): boolean =>
+        toArray(markerType).includes(mapMarker.feature.properties.markerType) && predicate(mapMarker.feature)
+    );
   }
 
   public ngAfterViewChecked(): void {

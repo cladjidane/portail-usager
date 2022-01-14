@@ -1,0 +1,8 @@
+<ng-container *ngIf="markers">
+  <leaflet-map
+    [centerView]="(centerView$ | async) ?? defaultCenterView"
+    [markers]="markers"
+    (markerChange)="onMarkerChanged($event)"
+    (stateChange)="onStateChanged($event)"
+    (zoomOut)="zoomOut.emit()"></leaflet-map>
+</ng-container>
