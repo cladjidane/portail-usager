@@ -13,10 +13,23 @@ import {
   MarkerProperties,
   CnfsPermanenceProperties,
   BoundedMarkers,
-  permanenceMarkerEventToCenterView
+  permanenceMarkerEventToCenterView,
+  AddressFoundPresentation
 } from '../../models';
 import { isGuyaneBoundedMarker, addUsagerFeatureToMarkers, CartographyPresenter } from './cartography.presenter';
-import { BehaviorSubject, delay, merge, Observable, of, Subject, switchMap, tap } from 'rxjs';
+import {
+  BehaviorSubject,
+  debounceTime,
+  delay,
+  distinctUntilChanged,
+  filter,
+  merge,
+  Observable,
+  of,
+  Subject,
+  switchMap,
+  tap
+} from 'rxjs';
 import { Coordinates } from '../../../../core';
 import { ViewportAndZoom, ViewReset } from '../../directives/leaflet-map-state-change';
 import { CartographyConfiguration, CARTOGRAPHY_TOKEN, Marker } from '../../../configuration';
@@ -30,6 +43,10 @@ const DEFAULT_MAP_VIEWPORT_AND_ZOOM: ViewportAndZoom = {
   viewport: [-3.8891601562500004, 39.30029918615029, 13.557128906250002, 51.56341232867588],
   zoomLevel: 6
 };
+
+const MIN_SEARCH_TERM_LENGTH: number = 3;
+
+const SEARCH_DEBOUNCE_TIME: number = 300;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +70,8 @@ export class CartographyPage {
     DEFAULT_MAP_VIEWPORT_AND_ZOOM
   );
 
+  private readonly _searchTerm$: Subject<string> = new Subject<string>();
+
   private readonly _usagerCoordinates$: Subject<Coordinates> = new Subject<Coordinates>();
 
   private readonly _visibleMapPointsOfInterest$: Observable<Feature<Point, PointOfInterestMarkerProperties>[]> = this.presenter
@@ -62,6 +81,14 @@ export class CartographyPage {
       this._highlightedStructureId$.asObservable()
     )
     .pipe(startWith([]));
+
+  public addressesFound$: Observable<AddressFoundPresentation[]> = this._searchTerm$.pipe(
+    map((searchTerm: string): string => searchTerm.trim()),
+    filter((searchTerm: string): boolean => searchTerm.length >= MIN_SEARCH_TERM_LENGTH),
+    debounceTime(SEARCH_DEBOUNCE_TIME),
+    distinctUntilChanged(),
+    switchMap((searchTerm: string): Observable<AddressFoundPresentation[]> => this.presenter.searchAddress$(searchTerm))
+  );
 
   public centerView$: Observable<CenterView> = this._centerView$.asObservable();
 
@@ -186,6 +213,10 @@ export class CartographyPage {
 
   public onMapViewChanged($event: ViewReset): void {
     this._mapViewportAndZoom$.next({ viewport: $event.viewport, zoomLevel: $event.zoomLevel });
+  }
+
+  public onSearchAddress(searchTerm: string): void {
+    this._searchTerm$.next(searchTerm);
   }
 
   public onZoomOut(): void {

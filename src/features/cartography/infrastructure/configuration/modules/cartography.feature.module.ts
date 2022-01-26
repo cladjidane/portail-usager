@@ -6,9 +6,10 @@ import {
   GeocodeAddressUseCase,
   ListCnfsByDepartmentUseCase,
   ListCnfsByRegionUseCase,
-  ListCnfsUseCase
+  ListCnfsUseCase,
+  SearchAddressUseCase
 } from '../../../use-cases';
-import { CnfsRepository, Coordinates, CoordinatesRepository } from '../../../core';
+import { CnfsRepository, Coordinates, AddressRepository } from '../../../core';
 import { CARTOGRAPHY_TOKEN, MARKERS, MARKERS_TOKEN } from '../tokens';
 import { CartographyPage } from '../../presentation/pages';
 import {
@@ -22,9 +23,10 @@ import {
 } from '../../presentation/components';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CnfsRest } from '../../data/rest';
-import { CoordinatesRest } from '../../data/rest/coordinates';
+import { AddressRest } from '../../data/rest/coordinates';
 import { LeafletMapStateChangeDirective } from '../../presentation/directives/leaflet-map-state-change';
 import { MapViewCullingService } from '../../presentation/services/map-view-culling.service';
+import { DropdownPaneComponent } from '../../../../../app/components';
 
 const METROPOLITAN_FRANCE_CENTER_LONGITUDE: number = 4.468874066180609;
 const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
@@ -37,6 +39,7 @@ const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
     CnfsDetailsContactComponent,
     CnfsListComponent,
     DisplayMapComponent,
+    DropdownPaneComponent,
     LeafletMapComponent,
     LeafletMapStateChangeDirective,
     PermanenceMapComponent
@@ -54,8 +57,8 @@ const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
         zoomLevel: 6
       }
     },
+    AddressRest,
     CnfsRest,
-    CoordinatesRest,
     {
       provide: MapViewCullingService,
       useClass: MapViewCullingService
@@ -82,10 +85,14 @@ const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
       useFactory: (cnfsRepository: CnfsRepository): CnfsDetailsUseCase => new CnfsDetailsUseCase(cnfsRepository)
     },
     {
-      deps: [CoordinatesRest],
+      deps: [AddressRest],
       provide: GeocodeAddressUseCase,
-      useFactory: (coordinatesRepository: CoordinatesRepository): GeocodeAddressUseCase =>
-        new GeocodeAddressUseCase(coordinatesRepository)
+      useFactory: (addressRepository: AddressRepository): GeocodeAddressUseCase => new GeocodeAddressUseCase(addressRepository)
+    },
+    {
+      deps: [AddressRest],
+      provide: SearchAddressUseCase,
+      useFactory: (addressRepository: AddressRepository): SearchAddressUseCase => new SearchAddressUseCase(addressRepository)
     }
   ]
 })
