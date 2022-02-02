@@ -45,4 +45,4 @@ jobs:
         continue-on-error: true
         run: |
           clever link ${{ format('{0}-{1}', env.app-name, matrix.value) }} --org ${{ secrets.CLEVER_ORG_ID }}
-          clever start
+          clever restart
