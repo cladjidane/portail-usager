@@ -23,8 +23,7 @@ import {
   IncompleteDataNoticeComponent
 } from '../../presentation/components';
 import { ReactiveFormsModule } from '@angular/forms';
-import { CnfsRest } from '../../data/rest';
-import { AddressRest } from '../../data/rest/coordinates';
+import { AddressRest, CnfsRest } from '../../data/rest';
 import { MapViewCullingService } from '../../presentation/services/map-view-culling.service';
 import { DropdownPaneComponent } from '../../../../../app/components';
 import {
@@ -32,6 +31,7 @@ import {
   LeafletMapPopupDirective,
   LeafletMapStateChangeDirective
 } from '../../presentation/directives';
+import { CollapseModule } from '../../../../../app/directives';
 
 const METROPOLITAN_FRANCE_CENTER_LONGITUDE: number = 4.468874066180609;
 const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
@@ -52,7 +52,7 @@ const METROPOLITAN_FRANCE_CENTER_LATITUDE: number = 46.28146057911664;
     PermanenceMapComponent,
     SwitchMapListComponent
   ],
-  imports: [CartographyFeatureRoutingModule, CommonModule, ReactiveFormsModule],
+  imports: [CartographyFeatureRoutingModule, CollapseModule, CommonModule, ReactiveFormsModule],
   providers: [
     {
       provide: CARTOGRAPHY_TOKEN,

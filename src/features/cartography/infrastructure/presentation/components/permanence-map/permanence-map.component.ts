@@ -93,15 +93,15 @@ export class PermanenceMapComponent {
     this.stateChange.emit(viewReset);
   }
 
-  public trackByDepartementName(_: number, cnfsPermanenceFeature: Feature<Point, CnfsByDepartmentMarkerProperties>): string {
-    return cnfsPermanenceFeature.properties.code;
+  public trackByDepartementName(_: number, cnfsDepartemenFeature: Feature<Point, CnfsByDepartmentMarkerProperties>): string {
+    return cnfsDepartemenFeature.properties.code;
   }
 
   public trackByPermanenceId(_: number, cnfsPermanenceFeature: Feature<Point, CnfsPermanenceMarkerProperties>): string {
     return cnfsPermanenceFeature.properties.id;
   }
 
-  public trackByRegionName(_: number, cnfsPermanenceFeature: Feature<Point, CnfsByRegionMarkerProperties>): string {
-    return cnfsPermanenceFeature.properties.region;
+  public trackByRegionName(_: number, cnfsRegionFeature: Feature<Point, CnfsByRegionMarkerProperties>): string {
+    return cnfsRegionFeature.properties.region;
   }
 }
