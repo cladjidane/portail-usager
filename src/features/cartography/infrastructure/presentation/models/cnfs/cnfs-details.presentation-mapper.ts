@@ -1,5 +1,5 @@
-import { CnfsDetails, CnfsType } from '../../../../core';
-import { CnfsDetailsPresentation, DayPresentation, Opening } from './cnfs-details.presentation';
+import { CnfsDetails, CnfsInStructure, CnfsType } from '../../../../core';
+import { CnfsPresentation, CnfsDetailsPresentation, DayPresentation, Opening } from './cnfs-details.presentation';
 
 const OPENING_DAYS: DayPresentation[] = Object.values(DayPresentation);
 
@@ -22,9 +22,11 @@ const getCnfsTypeNote = (type: CnfsType): Pick<CnfsDetailsPresentation, 'cnfsTyp
       }
     : {};
 
+const toCnfsPresentation = (cnfsInStructure: CnfsInStructure): CnfsPresentation => cnfsInStructure;
+
 export const cnfsDetailsToPresentation = (cnfsDetails: CnfsDetails): CnfsDetailsPresentation => ({
   address: cnfsDetails.structureAddress,
-  cnfsNumber: cnfsDetails.cnfsNumber,
+  cnfsList: cnfsDetails.cnfs.map(toCnfsPresentation),
   email: cnfsDetails.contact?.email,
   ...getCnfsTypeNote(cnfsDetails.type),
   opening: openingHoursToPresentation(cnfsDetails.openingHours),
