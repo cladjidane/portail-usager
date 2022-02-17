@@ -93,27 +93,26 @@ const LIST_CNFS_USE_CASE: ListCnfsUseCase = {
 const CNFS_DETAILS_USE_CASE: CnfsDetailsUseCase = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   execute$(_: string): Observable<CnfsDetails> {
-    return of(
-      new CnfsDetails(
-        [
-          {
-            email: 'christelle.bateau@conseiller-numerique.fr',
-            fullName: 'Christelle Bateau',
-            phone: '08 86 66 87 72'
-          },
-          {
-            email: 'charles.desmoulins@conseiller-numerique.fr',
-            fullName: 'Charles Desmoulins',
-            phone: '03 86 55 24 40'
-          }
-        ],
-        'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
-        CnfsType.Default,
-        ['9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 12h00'],
-        'Place José Moron 3200 RIOM',
-        new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com')
-      )
-    );
+    return of({
+      cnfs: [
+        {
+          email: 'christelle.bateau@conseiller-numerique.fr',
+          fullName: 'Christelle Bateau',
+          phone: '08 86 66 87 72'
+        },
+        {
+          email: 'charles.desmoulins@conseiller-numerique.fr',
+          fullName: 'Charles Desmoulins',
+          phone: '03 86 55 24 40'
+        }
+      ],
+      contact: new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com'),
+      openingHours: ['9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 12h00'],
+      position: new Coordinates(43.955, 6.053333),
+      structureAddress: 'Place José Moron 3200 RIOM',
+      structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
+      type: CnfsType.Default
+    });
   }
 } as CnfsDetailsUseCase;
 
@@ -187,27 +186,26 @@ describe('cartography presenter', (): void => {
       const cnfsDetailsUseCase: CnfsDetailsUseCase = {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         execute$(_: string): Observable<CnfsDetails> {
-          return of(
-            new CnfsDetails(
-              [
-                {
-                  email: 'christelle.bateau@conseiller-numerique.fr',
-                  fullName: 'Christelle Bateau',
-                  phone: '08 86 66 87 72'
-                },
-                {
-                  email: 'charles.desmoulins@conseiller-numerique.fr',
-                  fullName: 'Charles Desmoulins',
-                  phone: '03 86 55 24 40'
-                }
-              ],
-              'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
-              CnfsType.ChambreDAgriculture,
-              ['9h30 - 17h30'],
-              'Place José Moron 3200 RIOM',
-              new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com')
-            )
-          );
+          return of({
+            cnfs: [
+              {
+                email: 'christelle.bateau@conseiller-numerique.fr',
+                fullName: 'Christelle Bateau',
+                phone: '08 86 66 87 72'
+              },
+              {
+                email: 'charles.desmoulins@conseiller-numerique.fr',
+                fullName: 'Charles Desmoulins',
+                phone: '03 86 55 24 40'
+              }
+            ],
+            contact: new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com'),
+            openingHours: ['9h30 - 17h30'],
+            position: new Coordinates(43.955, 6.053333),
+            structureAddress: 'Place José Moron 3200 RIOM',
+            structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
+            type: CnfsType.ChambreDAgriculture
+          });
         }
       } as CnfsDetailsUseCase;
 
@@ -251,6 +249,54 @@ describe('cartography presenter', (): void => {
       );
 
       const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(cartographyPresenter.cnfsDetails$(id));
+
+      expect(cnfsDetails).toStrictEqual(expectedCnfsDetails);
+    });
+
+    it('should get cnfs details with distance from usager', async (): Promise<void> => {
+      const cnfsDetailsUseCase: CnfsDetailsUseCase = {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        execute$(_: string): Observable<CnfsDetails> {
+          return of({
+            cnfs: [],
+            contact: new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com'),
+            openingHours: [],
+            position: new Coordinates(43.955, 6.053333),
+            structureAddress: 'Place José Moron 3200 RIOM',
+            structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
+            type: CnfsType.ChambreDAgriculture
+          });
+        }
+      } as CnfsDetailsUseCase;
+
+      const expectedCnfsDetails: CnfsDetailsPresentation = {
+        address: 'Place José Moron 3200 RIOM',
+        cnfsList: [],
+        cnfsTypeNote: "Un conseiller de cette structure est spécialisé dans l'accueil des professions agricoles",
+        distanceFromUsager: '100.98 km',
+        email: 'email@example.com',
+        opening: [],
+        phone: '03 86 55 26 40',
+        structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
+        website: 'https://www.test.com'
+      };
+
+      const id: string = '4c38ebc9a06fdd532bf9d7be';
+      const usagerCoordinates: Coordinates = new Coordinates(44.863, 6.075412);
+
+      const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        cnfsDetailsUseCase,
+        LIST_CNFS_BY_REGION_USE_CASE,
+        LIST_CNFS_BY_DEPARTMENT_USE_CASE,
+        LIST_CNFS_USE_CASE,
+        {} as GeocodeAddressUseCase,
+        {} as SearchAddressUseCase,
+        {} as MapViewCullingService
+      );
+
+      const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(
+        cartographyPresenter.cnfsDetails$(id, usagerCoordinates)
+      );
 
       expect(cnfsDetails).toStrictEqual(expectedCnfsDetails);
     });
