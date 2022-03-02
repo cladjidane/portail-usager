@@ -25,6 +25,7 @@ import {
   CnfsByDepartmentMarkerProperties,
   CnfsByRegionMarkerProperties,
   CnfsDetailsPresentation,
+  CnfsLocationPresentation,
   CnfsPermanenceMarkerProperties,
   DayPresentation,
   MarkerHighLight,
@@ -32,6 +33,8 @@ import {
 } from '../../models';
 import { MarkerKey } from '../../../configuration';
 import { DEPARTMENT_ZOOM_LEVEL } from '../../helpers/map-constants';
+import { CnfsRest } from '../../../data/rest';
+import { CnfsLocationTransfer } from '../../../data/models';
 
 const LIST_CNFS_BY_REGION_USE_CASE: ListCnfsByRegionUseCase = {
   execute$(): Observable<CnfsByRegion[]> {
@@ -173,7 +176,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        {} as MapViewCullingService
+        {} as MapViewCullingService,
+        {} as CnfsRest
       );
 
       const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(cartographyPresenter.cnfsDetails$(id));
@@ -245,7 +249,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        {} as MapViewCullingService
+        {} as MapViewCullingService,
+        {} as CnfsRest
       );
 
       const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(cartographyPresenter.cnfsDetails$(id));
@@ -283,7 +288,6 @@ describe('cartography presenter', (): void => {
       };
 
       const id: string = '4c38ebc9a06fdd532bf9d7be';
-      const usagerCoordinates: Coordinates = new Coordinates(44.863, 6.075412);
 
       const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
         cnfsDetailsUseCase,
@@ -292,14 +296,53 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        {} as MapViewCullingService
+        {} as MapViewCullingService,
+        {} as CnfsRest
       );
 
-      const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(
-        cartographyPresenter.cnfsDetails$(id, usagerCoordinates)
-      );
+      cartographyPresenter.setUsagerCoordinates(new Coordinates(44.863, 6.075412));
+
+      const cnfsDetails: CnfsDetailsPresentation = await firstValueFrom(cartographyPresenter.cnfsDetails$(id));
 
       expect(cnfsDetails).toStrictEqual(expectedCnfsDetails);
+    });
+  });
+
+  describe('cnfs location', (): void => {
+    it('should get cnfs location presentation matching given id', async (): Promise<void> => {
+      const cnfsRest: CnfsRest = {
+        cnfsLocation$: (): Observable<CnfsLocationTransfer> =>
+          of({
+            geometry: {
+              coordinates: [-1.012996, 46.869512],
+              type: 'Point'
+            },
+            properties: {},
+            type: 'Feature'
+          })
+      } as unknown as CnfsRest;
+
+      const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+        {} as CnfsDetailsUseCase,
+        LIST_CNFS_BY_REGION_USE_CASE,
+        LIST_CNFS_BY_DEPARTMENT_USE_CASE,
+        LIST_CNFS_USE_CASE,
+        {} as GeocodeAddressUseCase,
+        {} as SearchAddressUseCase,
+        {} as MapViewCullingService,
+        cnfsRest
+      );
+
+      const structureId: string = '88bc36fb0db191928330b1e6';
+
+      const cnfsLocationPresentation: CnfsLocationPresentation = await firstValueFrom(
+        cartographyPresenter.cnfsPosition$(structureId)
+      );
+
+      expect(cnfsLocationPresentation).toStrictEqual({
+        coordinates: new Coordinates(46.869512, -1.012996),
+        id: structureId
+      });
     });
   });
 
@@ -318,7 +361,8 @@ describe('cartography presenter', (): void => {
         } as unknown as ListCnfsUseCase,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        {} as MapViewCullingService
+        {} as MapViewCullingService,
+        {} as CnfsRest
       );
 
       const structuresList: StructurePresentation[] = await firstValueFrom(cartographyPresenter.structuresList$());
@@ -355,7 +399,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       cartographyPresenter.setViewportAndZoom({
@@ -410,7 +455,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        {} as MapViewCullingService
+        {} as MapViewCullingService,
+        {} as CnfsRest
       );
 
       const visibleMapPointsOfInterest: FeatureCollection<Point, CnfsByRegionMarkerProperties> = await firstValueFrom(
@@ -462,7 +508,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        {} as MapViewCullingService
+        {} as MapViewCullingService,
+        {} as CnfsRest
       );
 
       cartographyPresenter.setViewportAndZoom({
@@ -532,7 +579,8 @@ describe('cartography presenter', (): void => {
         listCnfsUseCase,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       cartographyPresenter.setViewportAndZoom({
@@ -602,7 +650,8 @@ describe('cartography presenter', (): void => {
         listCnfsUseCase,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       cartographyPresenter.setViewportAndZoom({
@@ -625,7 +674,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       const expectedCnfsPermanenceMarkersFeatures: FeatureCollection<Point, CnfsPermanenceMarkerProperties> = {
@@ -682,7 +732,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       const expectedCnfsPermanenceMarkersFeatures: FeatureCollection<Point, CnfsPermanenceMarkerProperties> = {
@@ -744,7 +795,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         {} as SearchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       const expectedCnfsPermanenceMarkersFeatures: FeatureCollection<Point, CnfsPermanenceMarkerProperties> = {
@@ -820,7 +872,8 @@ describe('cartography presenter', (): void => {
         LIST_CNFS_USE_CASE,
         {} as GeocodeAddressUseCase,
         searchAddressUseCase,
-        new MapViewCullingService()
+        new MapViewCullingService(),
+        {} as CnfsRest
       );
 
       const addressesFound: AddressFoundPresentation[] = await firstValueFrom(cartographyPresenter.searchAddress$(searchTerm));

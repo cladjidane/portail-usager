@@ -16,7 +16,8 @@ import {
   PointOfInterestMarkerProperties,
   StructurePresentation,
   CenterView,
-  MarkerHighLight
+  MarkerHighLight,
+  CnfsLocationPresentation
 } from '../../models';
 import { CnfsByDepartmentProperties, CnfsByRegionProperties, CnfsDetails, Coordinates } from '../../../../core';
 import { BehaviorSubject, filter, iif, map, Observable, of, Subject } from 'rxjs';
@@ -36,6 +37,9 @@ import { MarkerKey } from '../../../configuration';
 import { ObservableCache } from '../../helpers/observable-cache';
 import { DEPARTMENT_ZOOM_LEVEL, REGION_ZOOM_LEVEL } from '../../helpers/map-constants';
 import { ViewportAndZoom } from '../../directives';
+import { CnfsRest } from '../../../data/rest';
+import { CnfsLocationTransfer } from '../../../data/models';
+import { cnfsPositionTransferToPresentation } from '../../models/cnfs/cnfs-postition.presentation-mapper';
 
 export interface HighlightedStructure {
   id: string;
@@ -118,6 +122,8 @@ export class CartographyPresenter {
   private readonly _markersRegionCache: ObservableCache<Feature<Point, CnfsByRegionMarkerProperties>[], MarkerKey> =
     new ObservableCache<Feature<Point, CnfsByRegionMarkerProperties>[], MarkerKey>();
 
+  private _usagerCoordinates?: Coordinates;
+
   private readonly _viewportAndZoom$: BehaviorSubject<ViewportAndZoom> = new BehaviorSubject<ViewportAndZoom>(
     DEFAULT_MAP_VIEWPORT_AND_ZOOM
   );
@@ -142,7 +148,8 @@ export class CartographyPresenter {
     @Inject(ListCnfsUseCase) private readonly listCnfsPositionUseCase: ListCnfsUseCase,
     @Inject(GeocodeAddressUseCase) private readonly geocodeAddressUseCase: GeocodeAddressUseCase,
     @Inject(SearchAddressUseCase) private readonly searchAddressUseCase: SearchAddressUseCase,
-    @Inject(MapViewCullingService) private readonly mapViewCullingService: MapViewCullingService
+    @Inject(MapViewCullingService) private readonly mapViewCullingService: MapViewCullingService,
+    @Inject(CnfsRest) private readonly cnfsRest: CnfsRest
   ) {}
 
   private cnfsByDepartmentAtZoomLevel$(
@@ -244,11 +251,23 @@ export class CartographyPresenter {
     );
   }
 
-  public cnfsDetails$(id: string, usagerCoordinates?: Coordinates): Observable<CnfsDetailsPresentation> {
+  public cnfsDetails$(id: string): Observable<CnfsDetailsPresentation> {
     return this.cnfsDetailsUseCase
       .execute$(id)
       .pipe(
-        map((cnfsDetails: CnfsDetails): CnfsDetailsPresentation => cnfsDetailsToPresentation(cnfsDetails, usagerCoordinates))
+        map(
+          (cnfsDetails: CnfsDetails): CnfsDetailsPresentation => cnfsDetailsToPresentation(cnfsDetails, this._usagerCoordinates)
+        )
+      );
+  }
+
+  public cnfsPosition$(id: string): Observable<CnfsLocationPresentation> {
+    return this.cnfsRest
+      .cnfsLocation$(id)
+      .pipe(
+        map(
+          (cnfsLocation: CnfsLocationTransfer): CnfsLocationPresentation => cnfsPositionTransferToPresentation(cnfsLocation, id)
+        )
       );
   }
 
@@ -284,6 +303,10 @@ export class CartographyPresenter {
 
   public setStructureDetailsDisplay(display: boolean): void {
     this._displayStructureDetails$.next(display);
+  }
+
+  public setUsagerCoordinates(usagerCoordinates: Coordinates): void {
+    this._usagerCoordinates = usagerCoordinates;
   }
 
   public setViewportAndZoom(viewportAndZoom: ViewportAndZoom): void {
