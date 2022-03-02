@@ -24,4 +24,4 @@ $cartography-icon-namespace: 'fi';
   vertical-align: bottom;
 }
 
-@include generate-icons(fi);
+@include generate-icons($cartography-icon-namespace);
