@@ -5,16 +5,45 @@ import {
   CnfsByRegionMarkerProperties,
   CnfsPermanenceMarkerProperties,
   MarkerEvent,
+  MarkerProperties,
+  PointOfInterestMarkerProperties,
   UsagerMarkerProperties
 } from '../../models';
-import { Feature, FeatureCollection, Point } from 'geojson';
-import { ViewReset } from '../../directives';
+import { Feature, Point } from 'geojson';
+import { ViewportAndZoom, ViewReset } from '../../directives';
 import { MARKERS, MARKERS_TOKEN } from '../../../configuration';
-import { HighlightedStructure } from '../../pages';
+import { CartographyPresenter, HighlightedStructure } from '../../pages';
+import { BehaviorSubject, combineLatest, Observable, switchMap, tap } from 'rxjs';
+import { CnfsByDepartmentFeatureCollection, DepartmentPermanenceMapPresenter } from './department-permanence-map.presenter';
+import { CnfsByRegionFeatureCollection, RegionPermanenceMapPresenter } from './region-permanence-map.presenter';
+import { CnfsPermanenceFeatureCollection, CnfsPermanenceMapPresenter } from './cnfs-permanence-map.presenter';
+import { CnfsByDepartmentProperties, CnfsByRegionProperties } from '../../../../core';
+import { MapChange } from './permanence-map.utils';
+
+// todo: export in configuration
+const DEFAULT_MAP_VIEWPORT_AND_ZOOM: ViewportAndZoom = {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  viewport: [-3.8891601562500004, 39.30029918615029, 13.557128906250002, 51.56341232867588],
+  zoomLevel: 6
+};
+
+const isGuyaneBoundedMarker = (markerProperties: PointOfInterestMarkerProperties): boolean => {
+  const departementProperties: CnfsByDepartmentProperties = markerProperties as CnfsByDepartmentProperties;
+  const regionProperties: CnfsByRegionProperties = markerProperties as CnfsByRegionProperties;
+
+  return departementProperties.department === 'Guyane' || regionProperties.region === 'Guyane';
+};
+
+const toCnfsPermanenceProperties = (
+  cnfsPermanence: Feature<Point, CnfsPermanenceMarkerProperties>
+): CnfsPermanenceMarkerProperties => cnfsPermanence.properties;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
+    DepartmentPermanenceMapPresenter,
+    RegionPermanenceMapPresenter,
+    CnfsPermanenceMapPresenter,
     {
       provide: MARKERS_TOKEN,
       useValue: MARKERS
@@ -24,12 +53,38 @@ import { HighlightedStructure } from '../../pages';
   templateUrl: './permanence-map.component.html'
 })
 export class PermanenceMapComponent {
+  private readonly _forceCnfsPermanence$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+
+  private readonly _viewportAndZoom$: BehaviorSubject<ViewportAndZoom> = new BehaviorSubject<ViewportAndZoom>(
+    DEFAULT_MAP_VIEWPORT_AND_ZOOM
+  );
+
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  private readonly _mapChange$: Observable<MapChange> = combineLatest([this._viewportAndZoom$, this._forceCnfsPermanence$]);
+
+  public readonly departementMarkers$: Observable<CnfsByDepartmentFeatureCollection> = this._mapChange$.pipe(
+    switchMap(
+      (mapChange: MapChange): Observable<CnfsByDepartmentFeatureCollection> =>
+        this.departmentPermanenceMapPresenter.markers$(mapChange)
+    )
+  );
+
+  public readonly permanenceMarkers$: Observable<CnfsPermanenceFeatureCollection> = this._mapChange$.pipe(
+    switchMap(
+      (mapChange: MapChange): Observable<CnfsPermanenceFeatureCollection> => this.cnfsPermanenceMapPresenter.markers$(mapChange)
+    ),
+    tap((cnfsPermanences: CnfsPermanenceFeatureCollection): void =>
+      this.cartographyPresenter.setCnfsPermanences(cnfsPermanences.features.map(toCnfsPermanenceProperties))
+    )
+  );
+
+  public readonly regionMarkers$: Observable<CnfsByRegionFeatureCollection> = this._mapChange$.pipe(
+    switchMap(
+      (mapChange: MapChange): Observable<CnfsByRegionFeatureCollection> => this.regionPermanenceMapPresenter.markers$(mapChange)
+    )
+  );
+
   @Input() public centerView!: CenterView;
-
-  @Output() public readonly cnfsDepartementMarkerClick: EventEmitter<MarkerEvent<CnfsByDepartmentMarkerProperties>> =
-    new EventEmitter<MarkerEvent<CnfsByDepartmentMarkerProperties>>();
-
-  @Input() public cnfsDepartementMarkers: FeatureCollection<Point, CnfsByDepartmentMarkerProperties> | null = null;
 
   @Output() public readonly cnfsPermanenceMarkerClick: EventEmitter<MarkerEvent<CnfsPermanenceMarkerProperties>> =
     new EventEmitter<MarkerEvent<CnfsPermanenceMarkerProperties>>();
@@ -39,24 +94,22 @@ export class PermanenceMapComponent {
 
   @Output() public readonly cnfsPermanenceMarkerLeave: EventEmitter<void> = new EventEmitter<void>();
 
-  @Input() public cnfsPermanenceMarkers: FeatureCollection<Point, CnfsPermanenceMarkerProperties> | null = null;
-
-  @Output() public readonly cnfsRegionMarkerClick: EventEmitter<MarkerEvent<CnfsByRegionMarkerProperties>> = new EventEmitter<
-    MarkerEvent<CnfsByRegionMarkerProperties>
-  >();
-
-  @Input() public cnfsRegionMarkers: FeatureCollection<Point, CnfsByRegionMarkerProperties> | null = null;
-
   @Input() public highlightedStructure?: HighlightedStructure;
-
-  @Output() public readonly stateChange: EventEmitter<ViewReset> = new EventEmitter<ViewReset>();
 
   @Input() public usagerMarker: Feature<Point, UsagerMarkerProperties> | null = null;
 
-  @Output() public readonly zoomOut: EventEmitter<void> = new EventEmitter<void>();
+  public constructor(
+    private readonly cartographyPresenter: CartographyPresenter,
+    private readonly cnfsPermanenceMapPresenter: CnfsPermanenceMapPresenter,
+    private readonly departmentPermanenceMapPresenter: DepartmentPermanenceMapPresenter,
+    private readonly regionPermanenceMapPresenter: RegionPermanenceMapPresenter
+  ) {}
 
-  public onDepartementClick(cnfsByDepartementMarkerEvent: MarkerEvent<CnfsByDepartmentMarkerProperties>): void {
-    this.cnfsDepartementMarkerClick.emit(cnfsByDepartementMarkerEvent);
+  public onLocationClick<T extends CnfsByDepartmentMarkerProperties | CnfsByRegionMarkerProperties>(
+    locationMarkerEvent: MarkerEvent<MarkerProperties<T>>
+  ): void {
+    this._forceCnfsPermanence$.next(isGuyaneBoundedMarker(locationMarkerEvent.markerProperties));
+    this.cartographyPresenter.setMapView(locationMarkerEvent.markerPosition, locationMarkerEvent.markerProperties.boundingZoom);
   }
 
   public onPermanenceClick(cnfsPermanenceMarkerEvent: MarkerEvent<CnfsPermanenceMarkerProperties>): void {
@@ -71,12 +124,12 @@ export class PermanenceMapComponent {
     this.cnfsPermanenceMarkerLeave.emit();
   }
 
-  public onRegionClick(cnfsByRegionMarkerEvent: MarkerEvent<CnfsByRegionMarkerProperties>): void {
-    this.cnfsRegionMarkerClick.emit(cnfsByRegionMarkerEvent);
+  public onStateChanged(viewReset: ViewReset): void {
+    this._viewportAndZoom$.next(viewReset);
   }
 
-  public onStateChanged(viewReset: ViewReset): void {
-    this.stateChange.emit(viewReset);
+  public onZoomOut(): void {
+    this._forceCnfsPermanence$.next(false);
   }
 
   public trackByDepartementName(_: number, cnfsDepartementFeature: Feature<Point, CnfsByDepartmentMarkerProperties>): string {
