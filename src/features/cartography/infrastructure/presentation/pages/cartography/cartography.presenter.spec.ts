@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import { CartographyPresenter } from './cartography.presenter';
 import { CnfsDetailsUseCase, GeocodeAddressUseCase, SearchAddressUseCase } from '../../../../use-cases';
 import { firstValueFrom, Observable, of } from 'rxjs';
@@ -15,7 +17,6 @@ import { CnfsLocationTransfer } from '../../../data/models';
 import { MarkerKey } from '../../../configuration';
 
 const CNFS_DETAILS_USE_CASE: CnfsDetailsUseCase = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   execute$(_: string): Observable<CnfsDetails> {
     return of({
       cnfs: [
@@ -31,7 +32,7 @@ const CNFS_DETAILS_USE_CASE: CnfsDetailsUseCase = {
         }
       ],
       contact: new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com'),
-      openingHours: ['9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 17h30', '9h30 - 12h00'],
+      openingHours: ['11h30 - 17h30', '11h30 - 17h30', '11h30 - 17h30', '11h30 - 17h30', '11h30 - 17h30', '11h30 - 12h00'],
       position: new Coordinates(43.955, 6.053333),
       structureAddress: 'Place José Moron 3200 RIOM',
       structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
@@ -62,27 +63,27 @@ describe('cartography presenter', (): void => {
         opening: [
           {
             day: DayPresentation.Monday,
-            hours: '9h30 - 17h30'
+            hours: '11h30 - 17h30'
           },
           {
             day: DayPresentation.Tuesday,
-            hours: '9h30 - 17h30'
+            hours: '11h30 - 17h30'
           },
           {
             day: DayPresentation.Wednesday,
-            hours: '9h30 - 17h30'
+            hours: '11h30 - 17h30'
           },
           {
             day: DayPresentation.Thursday,
-            hours: '9h30 - 17h30'
+            hours: '11h30 - 17h30'
           },
           {
             day: DayPresentation.Friday,
-            hours: '9h30 - 17h30'
+            hours: '11h30 - 17h30'
           },
           {
             day: DayPresentation.Saturday,
-            hours: '9h30 - 12h00'
+            hours: '11h30 - 12h00'
           }
         ],
         phone: '03 86 55 26 40',
@@ -106,7 +107,6 @@ describe('cartography presenter', (): void => {
 
     it('should get cnfs details with a Conseiller numérique France Service en Chambre d’Agriculture', async (): Promise<void> => {
       const cnfsDetailsUseCase: CnfsDetailsUseCase = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         execute$(_: string): Observable<CnfsDetails> {
           return of({
             cnfs: [
@@ -122,7 +122,7 @@ describe('cartography presenter', (): void => {
               }
             ],
             contact: new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com'),
-            openingHours: ['9h30 - 17h30'],
+            openingHours: ['11h30 - 17h30'],
             position: new Coordinates(43.955, 6.053333),
             structureAddress: 'Place José Moron 3200 RIOM',
             structureName: 'Association Des Centres Sociaux Et Culturels Du Bassin De Riom',
@@ -151,7 +151,7 @@ describe('cartography presenter', (): void => {
         opening: [
           {
             day: DayPresentation.Monday,
-            hours: '9h30 - 17h30'
+            hours: '11h30 - 17h30'
           }
         ],
         phone: '03 86 55 26 40',
@@ -175,7 +175,6 @@ describe('cartography presenter', (): void => {
 
     it('should get cnfs details with distance from usager', async (): Promise<void> => {
       const cnfsDetailsUseCase: CnfsDetailsUseCase = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         execute$(_: string): Observable<CnfsDetails> {
           return of({
             cnfs: [],
@@ -262,7 +261,7 @@ describe('cartography presenter', (): void => {
         {} as CnfsRest
       );
 
-      const structuresList: StructurePresentation[] = await firstValueFrom(cartographyPresenter.structuresList$());
+      const structuresList: StructurePresentation[] = await firstValueFrom(cartographyPresenter.structuresList$(new Date()));
 
       expect(structuresList).toStrictEqual([]);
     });
@@ -292,12 +291,14 @@ describe('cartography presenter', (): void => {
           address: '12 rue des Acacias, 69002 Lyon',
           id: '4c38ebc9a06fdd532bf9d7be',
           isLabeledFranceServices: false,
+          isOpen: false,
           name: 'Association des centres sociaux et culturels de Lyon'
         },
         {
           address: '31 Avenue de la mer, 13003 Marseille',
           id: '88bc36fb0db191928330b1e6',
           isLabeledFranceServices: true,
+          isOpen: false,
           name: 'Médiathèque de la mer'
         }
       ];
@@ -311,7 +312,9 @@ describe('cartography presenter', (): void => {
 
       cartographyPresenter.setCnfsPermanences(cnfsPermanences);
 
-      const structuresList: StructurePresentation[] = await firstValueFrom(cartographyPresenter.structuresList$());
+      const structuresList: StructurePresentation[] = await firstValueFrom(
+        cartographyPresenter.structuresList$(new Date('2022-03-20'))
+      );
 
       expect(structuresList).toStrictEqual(expectedStructureList);
     });
@@ -342,6 +345,7 @@ describe('cartography presenter', (): void => {
           distanceFromUsager: '100.98 km',
           id: '4c38ebc9a06fdd532bf9d7be',
           isLabeledFranceServices: false,
+          isOpen: false,
           name: 'Association des centres sociaux et culturels de Lyon'
         },
         {
@@ -349,6 +353,7 @@ describe('cartography presenter', (): void => {
           distanceFromUsager: '592.19 km',
           id: '88bc36fb0db191928330b1e6',
           isLabeledFranceServices: true,
+          isOpen: false,
           name: 'Médiathèque de la mer'
         }
       ];
@@ -364,10 +369,180 @@ describe('cartography presenter', (): void => {
 
       cartographyPresenter.setCnfsPermanences(cnfsPermanences);
 
-      const structuresList: StructurePresentation[] = await firstValueFrom(cartographyPresenter.structuresList$());
+      const structuresList: StructurePresentation[] = await firstValueFrom(
+        cartographyPresenter.structuresList$(new Date('2022-03-20'))
+      );
 
       expect(structuresList).toStrictEqual(expectedStructureList);
     });
+
+    it.each([
+      {
+        _desc: 'closed structure on 2022-03-15 at 10:00 (Tuesday), no opening hours',
+        date: '2022-03-15T10:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: null,
+        openingHours: []
+      },
+      {
+        _desc: 'closed structure on 2022-03-20 at 12:00 (Sunday), open on Monday',
+        date: '2022-03-20T12:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Monday,
+        openingHours: ['11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-20 at 12:00 (Sunday), open on Tuesday',
+        date: '2022-03-20T12:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Tuesday,
+        openingHours: ['', '11h30 - 17h30']
+      },
+      {
+        _desc: 'opened structure on 2022-03-15 at 12:00 (Tuesday)',
+        date: '2022-03-15T12:00:00.000',
+        expectedIsOpen: true,
+        expectedNextOpeningDay: null,
+        openingHours: ['', '11h30 - 17h30', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 11:25 (Tuesday), open today',
+        date: '2022-03-15T11:25:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Tuesday,
+        openingHours: ['', '11h30 - 17h30', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 17:35 (Tuesday), open on Wednesday',
+        date: '2022-03-15T17:35:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Wednesday,
+        openingHours: ['', '11h30 - 17h30', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 17:35 (Tuesday), open on next Tuesday',
+        date: '2022-03-15T17:35:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Tuesday,
+        openingHours: ['', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 11:00 (Tuesday) before it opens in the morning, open later today',
+        date: '2022-03-15T11:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Tuesday,
+        openingHours: ['', '11h30 - 12h30 | 14h30 - 17h30', '', '', '11h30 - 17h30']
+      },
+      {
+        _desc: 'opened structure on 2022-03-15 at 12:00 (Tuesday) during morning opening hours',
+        date: '2022-03-15T12:00:00.000',
+        expectedIsOpen: true,
+        expectedNextOpeningDay: null,
+        openingHours: ['', '11h30 - 12h30 | 14h30 - 17h30', '', '', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 13:00 (Tuesday) during lunch time, open later today',
+        date: '2022-03-15T13:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Tuesday,
+        openingHours: ['', '11h30 - 12h30 | 14h30 - 17h30', '', '', '11h30 - 17h30']
+      },
+      {
+        _desc: 'opened structure on 2022-03-15 at 15:00 (Tuesday) during afternoon opening hours',
+        date: '2022-03-15T15:00:00.000',
+        expectedIsOpen: true,
+        expectedNextOpeningDay: null,
+        openingHours: ['', '11h30 - 12h30 | 14h30 - 17h30', '', '', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 18:00 (Tuesday) after it closes in the afternoon, open on Friday',
+        date: '2022-03-15T18:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Friday,
+        openingHours: ['', '11h30 - 12h30 | 14h30 - 17h30', '', '', '11h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-15 at 18:00 (Tuesday) after it closes in the afternoon, open on next Tuesday',
+        date: '2022-03-15T18:00:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Tuesday,
+        openingHours: ['', '11h30 - 12h30 | 14h30 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-22 at 14:25 (Tuesday), open on Wednesday',
+        date: '2022-03-22T14:25:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Wednesday,
+        openingHours: ['', '', '4h00 - 6h00', '10h00 - 17h30']
+      },
+      {
+        _desc: 'closed structure on 2022-03-23 at 8:30 (Wednesday), open on Monday',
+        date: '2022-03-23T10:30:00.000',
+        expectedIsOpen: false,
+        expectedNextOpeningDay: DayPresentation.Monday,
+        openingHours: ['10h00 - 17h30', '', '4h00 - 6h00']
+      }
+    ])(
+      'should get structure liste containing a $_desc',
+      async ({
+        _desc,
+        date,
+        expectedIsOpen,
+        expectedNextOpeningDay,
+        openingHours
+      }: {
+        _desc: string;
+        date: string;
+        expectedIsOpen: boolean;
+        expectedNextOpeningDay: DayPresentation | null;
+        openingHours: string[];
+      }): Promise<void> => {
+        const cnfsPermanences: CnfsPermanenceMarkerProperties[] = [
+          {
+            address: '12 rue des Acacias, 69002 Lyon',
+            id: '4c38ebc9a06fdd532bf9d7be',
+            isLabeledFranceServices: false,
+            markerType: MarkerKey.CnfsPermanence,
+            name: 'Association des centres sociaux et culturels de Lyon',
+            openingHours,
+            position: new Coordinates(43.955, 6.053333)
+          }
+        ];
+
+        const expectedStructureList: StructurePresentation[] = [
+          {
+            address: '12 rue des Acacias, 69002 Lyon',
+            distanceFromUsager: '100.98 km',
+            id: '4c38ebc9a06fdd532bf9d7be',
+            isLabeledFranceServices: false,
+            isOpen: expectedIsOpen,
+            name: 'Association des centres sociaux et culturels de Lyon',
+            ...(expectedNextOpeningDay == null
+              ? {}
+              : {
+                  nextOpeningDay: expectedNextOpeningDay
+                })
+          }
+        ];
+
+        const cartographyPresenter: CartographyPresenter = new CartographyPresenter(
+          {} as CnfsDetailsUseCase,
+          {} as GeocodeAddressUseCase,
+          {} as SearchAddressUseCase,
+          {} as CnfsRest
+        );
+
+        cartographyPresenter.setUsagerCoordinates(new Coordinates(44.863, 6.075412));
+
+        cartographyPresenter.setCnfsPermanences(cnfsPermanences);
+
+        const structuresList: StructurePresentation[] = await firstValueFrom(
+          cartographyPresenter.structuresList$(new Date(date))
+        );
+
+        expect(structuresList).toStrictEqual(expectedStructureList);
+      }
+    );
   });
 
   describe('search address', (): void => {

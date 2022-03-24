@@ -129,12 +129,12 @@ export class CartographyPresenter {
     this._usagerCoordinates = usagerCoordinates;
   }
 
-  public structuresList$(): Observable<StructurePresentation[]> {
+  public structuresList$(date: Date): Observable<StructurePresentation[]> {
     return this._cnfsPermanenceMarkerProperties$
       .asObservable()
       .pipe(
         map((cnfsPermanenceProperties: CnfsPermanenceProperties[]): StructurePresentation[] =>
-          toStructurePresentation(cnfsPermanenceProperties, this._usagerCoordinates)
+          toStructurePresentation(cnfsPermanenceProperties, date, this._usagerCoordinates)
         )
       );
   }
