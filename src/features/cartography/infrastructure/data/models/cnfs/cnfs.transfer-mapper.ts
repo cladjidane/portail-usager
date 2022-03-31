@@ -7,9 +7,12 @@ const hasValidCoordinates = (feature: Feature<Point>): boolean => {
   return Coordinates.isValidLatitudeAngle(latitude) && Coordinates.isValidLongitudeAngle(longitude);
 };
 
-const getOpeningHours = (openingHours?: string[]): Pick<CnfsPermanence, 'openingHours'> => openingHours == null ? {} : {
-  openingHours
-};
+const getOpeningHours = (openingHours?: string[]): Pick<CnfsPermanence, 'openingHours'> =>
+  openingHours == null
+    ? {}
+    : {
+        openingHours
+      };
 
 const transferToCoreProperties = (feature: Feature<Point, CnfsTransferProperties>): CnfsPermanence => ({
   address: feature.properties.address ?? '',

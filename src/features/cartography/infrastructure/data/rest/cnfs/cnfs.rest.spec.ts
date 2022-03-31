@@ -142,7 +142,8 @@ describe('cnfs rest repository', (): void => {
       email: 'john.doe@aide-rurale.net',
       nom: 'Aide rurale',
       nombreCnfs: 2,
-      telephone: '04 23 45 68 97'
+      telephone: '04 23 45 68 97',
+      typeAcces: 'sur rendez-vous'
     };
 
     const httpClient: HttpClient = {
@@ -152,6 +153,7 @@ describe('cnfs rest repository', (): void => {
     } as unknown as HttpClient;
 
     const expectedCnfsDetails: CnfsDetails = {
+      access: 'sur rendez-vous',
       cnfs: [
         {
           email: 'christelle.bateau@conseiller-numerique.fr',
@@ -202,7 +204,8 @@ describe('cnfs rest repository', (): void => {
       nom: 'Aide rurale',
       nombreCnfs: 2,
       telephone: '04 23 45 68 97',
-      type: CnfsTypeTransfer.MonEspaceSante
+      type: CnfsTypeTransfer.MonEspaceSante,
+      typeAcces: 'sur rendez-vous'
     };
 
     const httpClient: HttpClient = {
@@ -212,6 +215,7 @@ describe('cnfs rest repository', (): void => {
     } as unknown as HttpClient;
 
     const expectedCnfsDetails: CnfsDetails = {
+      access: 'sur rendez-vous',
       cnfs: [
         {
           email: 'christelle.bateau@conseiller-numerique.fr',

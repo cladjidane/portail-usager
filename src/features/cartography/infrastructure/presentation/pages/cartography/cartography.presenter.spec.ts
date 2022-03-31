@@ -19,6 +19,7 @@ import { MarkerKey } from '../../../configuration';
 const CNFS_DETAILS_USE_CASE: CnfsDetailsUseCase = {
   execute$(_: string): Observable<CnfsDetails> {
     return of({
+      access: 'sur rendez-vous',
       cnfs: [
         {
           email: 'christelle.bateau@conseiller-numerique.fr',
@@ -45,6 +46,7 @@ describe('cartography presenter', (): void => {
   describe('cnfs details', (): void => {
     it('should get cnfs details', async (): Promise<void> => {
       const expectedCnfsDetails: CnfsDetailsPresentation = {
+        access: 'sur rendez-vous',
         address: 'Place José Moron 3200 RIOM',
         cnfsList: [
           {
@@ -109,6 +111,7 @@ describe('cartography presenter', (): void => {
       const cnfsDetailsUseCase: CnfsDetailsUseCase = {
         execute$(_: string): Observable<CnfsDetails> {
           return of({
+            access: 'sur rendez-vous',
             cnfs: [
               {
                 email: 'christelle.bateau@conseiller-numerique.fr',
@@ -132,6 +135,7 @@ describe('cartography presenter', (): void => {
       } as CnfsDetailsUseCase;
 
       const expectedCnfsDetails: CnfsDetailsPresentation = {
+        access: 'sur rendez-vous',
         address: 'Place José Moron 3200 RIOM',
         cnfsList: [
           {
@@ -177,6 +181,7 @@ describe('cartography presenter', (): void => {
       const cnfsDetailsUseCase: CnfsDetailsUseCase = {
         execute$(_: string): Observable<CnfsDetails> {
           return of({
+            access: 'sur rendez-vous',
             cnfs: [],
             contact: new StructureContact('email@example.com', '03 86 55 26 40', 'https://www.test.com'),
             openingHours: [],
@@ -189,6 +194,7 @@ describe('cartography presenter', (): void => {
       } as CnfsDetailsUseCase;
 
       const expectedCnfsDetails: CnfsDetailsPresentation = {
+        access: 'sur rendez-vous',
         address: 'Place José Moron 3200 RIOM',
         cnfsList: [],
         cnfsTypeNote: "Un conseiller de cette structure est spécialisé dans l'accueil des professions agricoles",
